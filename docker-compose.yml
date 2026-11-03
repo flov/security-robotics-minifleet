@@ -31,12 +31,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - '3000:3000'
+      - '4000:4000'
     environment:
       DATABASE_URL: postgresql://minifleet:minifleet@db:5432/minifleet
       REDIS_URL: redis://redis:6379
       JWT_SECRET: dev-jwt-secret-change-me
-      PORT: '3000'
+      PORT: '4000'
     depends_on:
       db:
         condition: service_healthy
