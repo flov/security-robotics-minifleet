@@ -2,6 +2,7 @@ import { asc, eq, sql } from 'drizzle-orm'
 import { db } from '../db/client.ts'
 import { robots } from '../db/schema.ts'
 import { broadcastRobot } from '../realtime/hub.ts'
+import { redis } from 'bun'
 
 export type RobotStatus = 'idle' | 'moving'
 
@@ -17,6 +18,8 @@ export type Robot = {
 type RobotRow = typeof robots.$inferSelect
 
 const STEP_DEGREES = 0.002
+const ROBOTS_LIST_KEY = 'minifleet:robots:list'
+const ROBOTS_LIST_TTL_SEC = 10
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
@@ -44,7 +47,24 @@ function nextPosition(lat: number, lon: number): { lat: number; lon: number } {
 }
 
 export async function listRobots(): Promise<Robot[]> {
+  try {
+    // cahced list from redis
+    const cached = await redis.get(ROBOTS_LIST_KEY)
+    if (cached) return JSON.parse(cached) as Robot[]
+  } catch (err) {
+    console.warn('redis get failed, using db', err)
+  }
+
   const rows = await db.select().from(robots).orderBy(asc(robots.id))
+
+  // set redis cache
+  try {
+    await redis.set(ROBOTS_LIST_KEY, JSON.stringify(rows.map(mapRobot)))
+    await redis.expire(ROBOTS_LIST_KEY, ROBOTS_LIST_TTL_SEC)
+  } catch (err) {
+    console.warn('redis set failed, using db', err)
+  }
+
   return rows.map(mapRobot)
 }
 
