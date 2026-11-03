@@ -1,6 +1,11 @@
 "use client";
 
 import { RobotsFetchError, fetchRobots } from "@/lib/api/robots";
+import {
+  fetchSimulationStatus,
+  startSimulation,
+  stopSimulation,
+} from "@/lib/api/simulation";
 import { clearAuthToken, getAuthToken } from "@/lib/auth-token";
 import {
   useRobotWebSocket,
@@ -52,6 +57,9 @@ export default function DashboardPage() {
   const [robots, setRobots] = useState<Robot[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [simulationRunning, setSimulationRunning] = useState<boolean | null>(null);
+  const [simulationBusy, setSimulationBusy] = useState(false);
+  const [simulationError, setSimulationError] = useState<string | null>(null);
 
   const onRobotUpdate = useCallback((robot: Robot) => {
     setRobots((prev) => (prev ? mergeRobotUpdate(prev, robot) : prev));
@@ -76,9 +84,28 @@ export default function DashboardPage() {
     void (async () => {
       try {
         const list = await fetchRobots(token);
-        if (!cancelled) {
-          setRobots(list);
-          setError(null);
+        if (cancelled) return;
+        setRobots(list);
+        setError(null);
+
+        try {
+          const status = await fetchSimulationStatus(token);
+          if (!cancelled) {
+            setSimulationRunning(status.running);
+            setSimulationError(null);
+          }
+        } catch (statusErr) {
+          if (cancelled) return;
+          if (statusErr instanceof RobotsFetchError && statusErr.status === 401) {
+            clearAuthToken();
+            router.replace("/login");
+            return;
+          }
+          setSimulationError(
+            statusErr instanceof RobotsFetchError
+              ? statusErr.message
+              : "Could not load simulation status.",
+          );
         }
       } catch (err) {
         if (cancelled) return;
@@ -106,6 +133,33 @@ export default function DashboardPage() {
     router.replace("/login");
   }
 
+  async function setSimulation(next: "start" | "stop"): Promise<void> {
+    const token = getAuthToken();
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+
+    setSimulationBusy(true);
+    setSimulationError(null);
+    try {
+      const status =
+        next === "start" ? await startSimulation(token) : await stopSimulation(token);
+      setSimulationRunning(status.running);
+    } catch (err) {
+      if (err instanceof RobotsFetchError && err.status === 401) {
+        clearAuthToken();
+        router.replace("/login");
+        return;
+      }
+      setSimulationError(
+        err instanceof RobotsFetchError ? err.message : "Could not update the simulation.",
+      );
+    } finally {
+      setSimulationBusy(false);
+    }
+  }
+
   function handleRetryLoad(): void {
     setError(null);
     setRobots(null);
@@ -128,7 +182,22 @@ export default function DashboardPage() {
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">Fleet dashboard</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
-            <span>Map and list update from the server simulation (~every 2s).</span>
+            <span>
+              {simulationRunning === false
+                ? "Simulation paused — positions frozen until started."
+                : "Live updates when simulation is running (~every 2s)."}
+            </span>
+            {simulationRunning !== null ? (
+              <span
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                  simulationRunning
+                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                    : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
+                }`}
+              >
+                {simulationRunning ? "Running" : "Paused"}
+              </span>
+            ) : null}
             {!error && wsEnabled ? (
               <span
                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${liveStatusClass(wsStatus)}`}
@@ -138,14 +207,42 @@ export default function DashboardPage() {
             ) : null}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="shrink-0 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
-        >
-          Log out
-        </button>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {simulationRunning === false ? (
+            <button
+              type="button"
+              disabled={simulationBusy}
+              onClick={() => void setSimulation("start")}
+              className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+            >
+              Start simulation
+            </button>
+          ) : null}
+          {simulationRunning === true ? (
+            <button
+              type="button"
+              disabled={simulationBusy}
+              onClick={() => void setSimulation("stop")}
+              className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+            >
+              Stop simulation
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+          >
+            Log out
+          </button>
+        </div>
       </header>
+
+      {simulationError ? (
+        <p className="text-sm text-red-700 dark:text-red-300" role="alert">
+          {simulationError}
+        </p>
+      ) : null}
 
       {error ? (
         <div
