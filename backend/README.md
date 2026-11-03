@@ -22,7 +22,7 @@ bun run dev
 
 Postgres must be reachable at `localhost:5433` (see `DATABASE_URL`). If `bun run dev` fails with `ECONNREFUSED`, start the database service above.
 
-If Compose is already running the **api** service on port 3000, either stop it (`docker compose stop api`) or set `PORT=3001` in `backend/.env` (see `.env.example`).
+If Compose is already running the **api** service on port 4000, either stop it (`docker compose stop api`) or set a different `PORT` in `backend/.env` (see `.env.example`).
 
 The example user is `admin@test.com` / `test123`.
 
@@ -47,7 +47,7 @@ Each move sets `status` to `moving`. Seeded robots stay `idle` until the first m
 
 ## WebSocket
 
-Connect to `ws://localhost:3000/ws?token=<jwt>`.
+Connect to `ws://localhost:4000/ws?token=<jwt>`.
 
 After each move (timer or `POST /robots/:id/move`) every connected client receives:
 

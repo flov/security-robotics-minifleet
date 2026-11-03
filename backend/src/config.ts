@@ -6,7 +6,7 @@ function required(name: string): string {
   return value;
 }
 
-const port = Number(process.env.PORT ?? "3000");
+const port = Number(process.env.PORT ?? "4000");
 if (!Number.isInteger(port) || port <= 0) {
   throw new Error("PORT must be a positive integer");
 }
