@@ -1,7 +1,7 @@
 import { asc, eq, sql } from 'drizzle-orm'
 import { db } from '../db/client.ts'
 import { robots } from '../db/schema.ts'
-import { broadcastRobot } from '../realtime/hub.ts'
+import { publishRobotUpdate } from '../realtime/redisPubSub.ts'
 import { redis } from 'bun'
 
 export type RobotStatus = 'idle' | 'moving'
@@ -102,6 +102,6 @@ export async function moveRobot(id: number): Promise<Robot | null> {
   if (!row) return null
 
   const mapped = mapRobot(row)
-  broadcastRobot(mapped)
+  await publishRobotUpdate(mapped)
   return mapped
 }

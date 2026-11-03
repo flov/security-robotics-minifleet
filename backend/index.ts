@@ -6,6 +6,7 @@ import { rethrowDatabaseStartupError } from './src/db/ensureDatabase'
 import { runMigrations } from './src/db/migrate'
 import { seedIfEmpty } from './src/db/seed'
 import { attachWebSocket } from './src/realtime/attachWebSocket'
+import { startRobotUpdatesSubscriber } from './src/realtime/redisPubSub.ts'
 import { startSimulation } from './src/simulation/tick'
 
 try {
@@ -17,6 +18,7 @@ try {
 
 const app = createApp()
 const server = createServer(app)
+const closePubSub = await startRobotUpdatesSubscriber()
 const closeWebSocket = attachWebSocket(server)
 const stopSimulation = startSimulation()
 
@@ -30,6 +32,7 @@ function shutdown(): void {
   if (stopping) return
   stopping = true
   stopSimulation()
+  closePubSub()
   closeWebSocket()
   server.close(() => {
     void closeDb().finally(() => {

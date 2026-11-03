@@ -55,4 +55,4 @@ After each move (timer or `POST /robots/:id/move`) every connected client receiv
 { "type": "robot:update", "robot": { "id", "name", "status", "lat", "lon", "updated_at" } }
 ```
 
-Redis is started by Compose but this API does not use it.
+Updates are published on Redis Pub/Sub (`minifleet:robot:updates`); this process subscribes and forwards them to WebSocket clients. `GET /robots` responses are cached in Redis for 10 seconds. Set `REDIS_URL` (see `.env.example`); Compose provides `redis://redis:6379` for the API service.

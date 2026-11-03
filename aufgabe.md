@@ -19,7 +19,7 @@ Erstelle eine kleine, funktionsfähige Web-Anwendung, die:
 - PostgreSQL als persistente Datenbank
 - Redis als Cache + (optional) Pub/Sub für Live-Updates
 - Auth mit JWT (Login + geschützte Routen)
-- HTTPS oder HTTP mit CORS (keine self-signed Pflicht)
+- ❌ HTTPS oder HTTP mit CORS (keine self-signed Pflicht)
 - REST + WebSocket für Server-Client-Kommunikation
 - Docker Compose mit Postgres + Redis
 
