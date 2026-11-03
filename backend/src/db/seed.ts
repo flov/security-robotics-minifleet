@@ -7,9 +7,9 @@ const SEED_EMAIL = "admin@test.com";
 const SEED_PASSWORD = "test123";
 
 const SEED_ROBOTS = [
-  { name: "Alpha", lat: 52.52, lon: 13.405 },
-  { name: "Beta", lat: 52.5, lon: 13.38 },
-  { name: "Gamma", lat: 52.54, lon: 13.42 },
+  { name: "Alpha", lat: 51.34, lon: 12.373 },
+  { name: "Beta", lat: 51.335, lon: 12.368 },
+  { name: "Gamma", lat: 51.345, lon: 12.378 },
 ] as const;
 
 export async function seedIfEmpty(): Promise<void> {
