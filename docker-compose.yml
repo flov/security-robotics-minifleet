@@ -8,9 +8,10 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # Host 5433 — 5432 is often taken by a local, other Postgres services
+      - '5433:5432'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U minifleet -d minifleet"]
+      test: ['CMD-SHELL', 'pg_isready -U minifleet -d minifleet']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -18,9 +19,9 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 5
@@ -30,12 +31,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       DATABASE_URL: postgresql://minifleet:minifleet@db:5432/minifleet
       REDIS_URL: redis://redis:6379
       JWT_SECRET: dev-jwt-secret-change-me
-      PORT: "3000"
+      PORT: '3000'
     depends_on:
       db:
         condition: service_healthy

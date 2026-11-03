@@ -13,13 +13,26 @@ docker compose up --build
 To run the API on the host instead (Postgres and Redis still from Compose):
 
 ```bash
+docker compose up db -d
 cp backend/.env.example backend/.env
 cd backend
 bun install
 bun run dev
 ```
 
+Postgres must be reachable at `localhost:5433` (see `DATABASE_URL`). If `bun run dev` fails with `ECONNREFUSED`, start the database service above.
+
+If Compose is already running the **api** service on port 3000, either stop it (`docker compose stop api`) or set `PORT=3001` in `backend/.env` (see `.env.example`).
+
 The example user is `admin@test.com` / `test123`.
+
+Database schema is managed with [Drizzle](https://orm.drizzle.team/). On startup the API runs migrations and seeds demo data if tables are empty.
+
+```bash
+bun run db:generate   # after schema changes
+bun run db:migrate    # apply migrations (also runs automatically on API start)
+bun run db:studio     # browse data
+```
 
 ## HTTP
 

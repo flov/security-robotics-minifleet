@@ -2,11 +2,18 @@ import { createServer } from "node:http";
 import { createApp } from "./src/app.ts";
 import { config } from "./src/config.ts";
 import { closeDb } from "./src/db/client.ts";
-import { initDb } from "./src/db/init.ts";
+import { rethrowDatabaseStartupError } from "./src/db/ensureDatabase.ts";
+import { runMigrations } from "./src/db/migrate.ts";
+import { seedIfEmpty } from "./src/db/seed.ts";
 import { attachWebSocket } from "./src/realtime/attachWebSocket.ts";
 import { startSimulation } from "./src/simulation/tick.ts";
 
-await initDb();
+try {
+  await runMigrations();
+  await seedIfEmpty();
+} catch (error) {
+  rethrowDatabaseStartupError(error);
+}
 
 const app = createApp();
 const server = createServer(app);

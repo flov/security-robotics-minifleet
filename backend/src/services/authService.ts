@@ -1,15 +1,11 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { sql } from "drizzle-orm";
 import { config } from "../config.ts";
-import { sql } from "../db/client.ts";
+import { db } from "../db/client.ts";
+import { users } from "../db/schema.ts";
 
 const TOKEN_TTL = "24h";
-
-type UserRow = {
-  id: number;
-  email: string;
-  password_hash: string;
-};
 
 export type AuthUser = {
   id: number;
@@ -20,15 +16,20 @@ export async function login(
   email: string,
   password: string,
 ): Promise<{ token: string; user: AuthUser } | null> {
-  const rows = await sql<UserRow[]>`
-    SELECT id, email, password_hash
-    FROM users
-    WHERE lower(email) = lower(${email})
-  `;
+  const rows = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      passwordHash: users.passwordHash,
+    })
+    .from(users)
+    .where(sql`lower(${users.email}) = lower(${email})`)
+    .limit(1);
+
   const user = rows[0];
   if (!user) return null;
 
-  const matches = await bcrypt.compare(password, user.password_hash);
+  const matches = await bcrypt.compare(password, user.passwordHash);
   if (!matches) return null;
 
   const token = jwt.sign({ sub: String(user.id), email: user.email }, config.jwtSecret, {
