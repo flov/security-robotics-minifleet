@@ -2,6 +2,8 @@ import { listRobotIds, moveRobot } from '../services/robotService.ts'
 
 const INTERVAL_MS = 2000
 
+let timer: ReturnType<typeof setInterval> | null = null
+
 async function tick(): Promise<void> {
   const ids = await listRobotIds()
   for (const id of ids) {
@@ -9,14 +11,22 @@ async function tick(): Promise<void> {
   }
 }
 
-export function startSimulation(): () => void {
-  const timer = setInterval(() => {
+export function isSimulationRunning(): boolean {
+  return timer !== null
+}
+
+export function startSimulation(): void {
+  if (timer !== null) return
+
+  timer = setInterval(() => {
     void tick().catch((err: unknown) => {
       console.error('simulation tick failed', err)
     })
   }, INTERVAL_MS)
+}
 
-  return () => {
-    clearInterval(timer)
-  }
+export function stopSimulation(): void {
+  if (timer === null) return
+  clearInterval(timer)
+  timer = null
 }

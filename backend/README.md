@@ -1,6 +1,6 @@
 # backend
 
-Express API for the Mini-Fleet monitor. Bun runs the process; Postgres stores users and robots. A timer moves every robot every 2 seconds and broadcasts the new position over WebSocket.
+Express API for the Mini-Fleet monitor. Bun runs the process; Postgres stores users and robots. A timer moves every robot every 2 seconds and broadcasts the new position over WebSocket. The timer starts with the process; authenticated clients can pause and resume it.
 
 ## Setup
 
@@ -42,6 +42,9 @@ bun run db:studio     # browse data
 | POST | `/auth/login` | no | Body `{ "email", "password" }` → `{ "token", "user" }` |
 | GET | `/robots` | Bearer JWT | All robots |
 | POST | `/robots/:id/move` | Bearer JWT | One random step, then the updated robot |
+| GET | `/simulation` | Bearer JWT | `{ "running": boolean }` |
+| POST | `/simulation/start` | Bearer JWT | Start the 2s timer (no-op if already running) |
+| POST | `/simulation/stop` | Bearer JWT | Stop the timer (no-op if already stopped) |
 
 Each move sets `status` to `moving`. Seeded robots stay `idle` until the first move.
 
