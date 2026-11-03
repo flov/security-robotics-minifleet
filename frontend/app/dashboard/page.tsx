@@ -2,10 +2,12 @@
 
 import { RobotsFetchError, fetchRobots } from "@/lib/api/robots";
 import { clearAuthToken, getAuthToken } from "@/lib/auth-token";
+import { useRobotWebSocket } from "@/lib/hooks/use-robot-websocket";
+import { mergeRobotUpdate } from "@/lib/realtime/merge-robot-update";
 import type { Robot } from "@/lib/types/robot";
 import { RobotMap } from "@/components/robot-map";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 function formatCoordinate(value: number): string {
   return value.toFixed(5);
@@ -21,6 +23,15 @@ export default function DashboardPage() {
   const router = useRouter();
   const [robots, setRobots] = useState<Robot[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const onRobotUpdate = useCallback((robot: Robot) => {
+    setRobots((prev) => (prev ? mergeRobotUpdate(prev, robot) : prev));
+  }, []);
+
+  useRobotWebSocket({
+    enabled: robots !== null && error === null,
+    onRobotUpdate,
+  });
 
   useEffect(() => {
     const token = getAuthToken();
@@ -74,7 +85,7 @@ export default function DashboardPage() {
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-          Robot positions on the map — live updates in the next step.
+          Live positions from the server simulation (WebSocket, ~every 2s).
         </p>
       </header>
 

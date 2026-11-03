@@ -10,3 +10,11 @@ export function getApiBaseUrl(): string {
   }
   throw new Error("NEXT_PUBLIC_API_URL is not set");
 }
+
+export function getWebSocketUrl(token: string): string {
+  const httpBase = getApiBaseUrl();
+  const wsBase = httpBase.startsWith("https://")
+    ? `wss://${httpBase.slice("https://".length)}`
+    : `ws://${httpBase.slice("http://".length)}`;
+  return `${wsBase}/ws?token=${encodeURIComponent(token)}`;
+}
