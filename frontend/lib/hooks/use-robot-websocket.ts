@@ -4,17 +4,25 @@ import { getAuthToken } from "../auth-token";
 import { getWebSocketUrl } from "../config";
 import { parseRobotUpdateMessage } from "../realtime/merge-robot-update";
 import type { Robot } from "../types/robot";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const INITIAL_RECONNECT_MS = 1_000;
 const MAX_RECONNECT_MS = 30_000;
+
+export type RobotWebSocketStatus = "idle" | "connecting" | "live" | "reconnecting";
 
 type UseRobotWebSocketOptions = {
   enabled: boolean;
   onRobotUpdate: (robot: Robot) => void;
 };
 
-export function useRobotWebSocket({ enabled, onRobotUpdate }: UseRobotWebSocketOptions): void {
+export function useRobotWebSocket({
+  enabled,
+  onRobotUpdate,
+}: UseRobotWebSocketOptions): RobotWebSocketStatus {
+  const [connectionStatus, setConnectionStatus] = useState<
+    Exclude<RobotWebSocketStatus, "idle">
+  >("connecting");
   const onRobotUpdateRef = useRef(onRobotUpdate);
 
   useEffect(() => {
@@ -26,6 +34,7 @@ export function useRobotWebSocket({ enabled, onRobotUpdate }: UseRobotWebSocketO
 
     const token = getAuthToken();
     if (!token) return;
+    const wsToken = token;
 
     let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -41,6 +50,7 @@ export function useRobotWebSocket({ enabled, onRobotUpdate }: UseRobotWebSocketO
 
     function scheduleReconnect(): void {
       if (cancelled) return;
+      setConnectionStatus("reconnecting");
       clearReconnectTimer();
       reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
@@ -52,10 +62,12 @@ export function useRobotWebSocket({ enabled, onRobotUpdate }: UseRobotWebSocketO
     function connect(): void {
       if (cancelled) return;
 
-      ws = new WebSocket(getWebSocketUrl(token));
+      setConnectionStatus("connecting");
+      ws = new WebSocket(getWebSocketUrl(wsToken));
 
       ws.onopen = () => {
         reconnectDelay = INITIAL_RECONNECT_MS;
+        setConnectionStatus("live");
       };
 
       ws.onmessage = (event) => {
@@ -86,4 +98,6 @@ export function useRobotWebSocket({ enabled, onRobotUpdate }: UseRobotWebSocketO
       }
     };
   }, [enabled]);
+
+  return enabled ? connectionStatus : "idle";
 }
