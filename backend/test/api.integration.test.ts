@@ -122,7 +122,25 @@ describe.serial("API", () => {
       expect(typeof moved.body.lat).toBe("number");
       expect(typeof moved.body.lon).toBe("number");
 
+      const history = await request(app)
+        .get(`/robots/${created.body.id}/positions`)
+        .set(auth(token));
+      expect(history.status).toBe(200);
+      expect(Array.isArray(history.body)).toBe(true);
+      expect(history.body.length).toBeGreaterThanOrEqual(2);
+      const last = history.body[history.body.length - 1];
+      expect(last.lat).toBe(moved.body.lat);
+      expect(last.lon).toBe(moved.body.lon);
+      expect(last.status).toBe("moving");
+
       await request(app).delete(`/robots/${created.body.id}`).set(auth(token));
+    });
+
+    test("GET /robots/:id/positions returns 404 for an unknown robot", async () => {
+      const { token } = await loginAsAdmin(app);
+      const res = await request(app).get("/robots/999999999/positions").set(auth(token));
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({ error: "Robot not found" });
     });
 
     test("DELETE /robots/:id validates, misses, and removes", async () => {

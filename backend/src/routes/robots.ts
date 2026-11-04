@@ -1,8 +1,30 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/requireAuth.ts";
 import { createRobot, deleteRobot, listRobots, moveRobot } from "../services/robotService.ts";
+import {
+  listRobotPositions,
+  robotExists,
+} from "../services/robotPositionService.ts";
 
 export const robotsRouter = Router();
+
+function parsePositiveInt(value: unknown): number | null {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n <= 0) return null;
+  return n;
+}
+
+function parseOptionalIsoDate(value: unknown): Date | { error: string } | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return { error: "Invalid date parameter" };
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return { error: "Invalid date parameter" };
+  }
+  return date;
+}
 
 function parseCreateRobotBody(
   body: unknown,
@@ -26,6 +48,44 @@ function parseCreateRobotBody(
 robotsRouter.get("/", requireAuth, async (_req, res) => {
   const robots = await listRobots();
   res.json(robots);
+});
+
+robotsRouter.get("/:id/positions", requireAuth, async (req, res) => {
+  const id = parsePositiveInt(req.params.id);
+  if (id === null) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const limitRaw = req.query.limit;
+  let limit: number | undefined;
+  if (limitRaw !== undefined) {
+    const parsed = parsePositiveInt(limitRaw);
+    if (parsed === null) {
+      res.status(400).json({ error: "Invalid limit" });
+      return;
+    }
+    limit = parsed;
+  }
+
+  const since = parseOptionalIsoDate(req.query.since);
+  if (since && "error" in since) {
+    res.status(400).json({ error: since.error });
+    return;
+  }
+  const until = parseOptionalIsoDate(req.query.until);
+  if (until && "error" in until) {
+    res.status(400).json({ error: until.error });
+    return;
+  }
+
+  if (!(await robotExists(id))) {
+    res.status(404).json({ error: "Robot not found" });
+    return;
+  }
+
+  const positions = await listRobotPositions(id, { limit, since, until });
+  res.json(positions);
 });
 
 robotsRouter.post("/", requireAuth, async (req, res) => {

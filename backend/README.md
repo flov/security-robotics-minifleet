@@ -59,6 +59,7 @@ If Postgres is not reachable, tests fail with `ECONNREFUSED`. Use the Compose `d
 | POST | `/robots` | Bearer JWT | Body `{ "name", "lat", "lon" }` → **201** and the created robot (`status` `idle`). Invalidates the Redis list cache. |
 | DELETE | `/robots/:id` | Bearer JWT | **204** when the robot is removed. **404** if it does not exist. Invalidates the Redis list cache. |
 | POST | `/robots/:id/move` | Bearer JWT | One random step, then the updated robot |
+| GET | `/robots/:id/positions` | Bearer JWT | Position history (query `limit`, optional `since` / `until` ISO timestamps). **404** if the robot does not exist. |
 | GET | `/simulation` | Bearer JWT | `{ "running": boolean }` |
 | POST | `/simulation/start` | Bearer JWT | Start the 2s timer (no-op if already running) |
 | POST | `/simulation/stop` | Bearer JWT | Stop the timer (no-op if already stopped) |

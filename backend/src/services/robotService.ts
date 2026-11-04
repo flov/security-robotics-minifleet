@@ -1,6 +1,7 @@
 import { asc, eq, sql } from 'drizzle-orm'
 import { db } from '../db/client.ts'
 import { robots } from '../db/schema.ts'
+import { insertRobotPosition } from './robotPositionService.ts'
 import { publishRobotRemoved, publishRobotUpdate } from '../realtime/redisPubSub.ts'
 import { redis } from 'bun'
 
@@ -102,6 +103,13 @@ export async function createRobot(input: {
   const row = inserted[0]
   if (!row) throw new Error('Failed to create robot')
 
+  await insertRobotPosition(db, {
+    robotId: row.id,
+    lat: row.lat,
+    lon: row.lon,
+    status: 'idle',
+  })
+
   await invalidateRobotsListCache()
   return mapRobot(row)
 }
@@ -130,21 +138,33 @@ export async function moveRobot(id: number): Promise<Robot | null> {
   if (!robot) return null
 
   const next = nextPosition(robot.lat, robot.lon)
-  const updated = await db
-    .update(robots)
-    .set({
-      lat: next.lat,
-      lon: next.lon,
+  const updated = await db.transaction(async (tx) => {
+    const rows = await tx
+      .update(robots)
+      .set({
+        lat: next.lat,
+        lon: next.lon,
+        status: 'moving',
+        updatedAt: sql`now()`,
+      })
+      .where(eq(robots.id, id))
+      .returning()
+
+    const row = rows[0]
+    if (!row) return null
+
+    await insertRobotPosition(tx, {
+      robotId: row.id,
+      lat: row.lat,
+      lon: row.lon,
       status: 'moving',
-      updatedAt: sql`now()`,
     })
-    .where(eq(robots.id, id))
-    .returning()
 
-  const row = updated[0]
-  if (!row) return null
+    return row
+  })
+  if (!updated) return null
 
-  const mapped = mapRobot(row)
+  const mapped = mapRobot(updated)
   await publishRobotUpdate(mapped)
   return mapped
 }

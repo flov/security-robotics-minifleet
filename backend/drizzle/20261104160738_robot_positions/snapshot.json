@@ -1,0 +1,255 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "38064e42-62e5-4be4-a4a6-f7724e370cd6",
+  "prevIds": [
+    "973f06f7-ed2c-46c0-acc0-384c41cf5c18"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "robot_positions"
+      ],
+      "writes": [
+        "s|tbl|public.robot_positions",
+        "n|tbl|public.robot_positions",
+        "e|tbl|public.robot_positions",
+        "n|rel|public.robot_positions",
+        "n|type|public.robot_positions",
+        "n|rel|public.robot_positions_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "robot_positions",
+        "robot_positions_robot_id_recorded_at_idx"
+      ],
+      "writes": [
+        "s|idx|public.robot_positions_robot_id_recorded_at_idx",
+        "n|idx|public.robot_positions_robot_id_recorded_at_idx",
+        "e|idx|public.robot_positions_robot_id_recorded_at_idx",
+        "n|rel|public.robot_positions_robot_id_recorded_at_idx"
+      ],
+      "reads": [
+        "n|tbl|public.robot_positions",
+        "n|sch|public",
+        "n|col|public.robot_positions.robot_id",
+        "n|col|public.robot_positions.recorded_at"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "robot_positions"
+      ],
+      "writes": [
+        "s|fk|public.robot_positions.robot_positions_robot_id_robots_id_fkey",
+        "n|fk|public.robot_positions.robot_positions_robot_id_robots_id_fkey",
+        "e|fk|public.robot_positions.robot_positions_robot_id_robots_id_fkey",
+        "n|con|public.robot_positions.robot_positions_robot_id_robots_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.robot_positions",
+        "n|sch|public",
+        "n|tbl|public.robots",
+        "n|sch|public",
+        "n|col|public.robot_positions.robot_id",
+        "n|col|public.robots.id",
+        "e|uniqueness|public.robots.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "robot_positions",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "robot_positions",
+        "name": "id",
+        "type": "serial",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "robot_positions",
+        "name": "robot_id",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "robot_positions",
+        "name": "lat",
+        "type": "double precision",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "robot_positions",
+        "name": "lon",
+        "type": "double precision",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "robot_positions",
+        "name": "status",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "robot_positions",
+        "name": "recorded_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "robot_positions",
+        "name": "robot_positions_robot_id_recorded_at_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "robot_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "recorded_at",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "robot_positions",
+        "name": "robot_positions_robot_id_robots_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "robot_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "robots",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "robot_positions",
+        "name": "robot_positions_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "robot_positions",
+        "name": "robot_positions_status_check",
+        "value": "\"status\" IN ('idle', 'moving')",
+        "entityType": "checks"
+      }
+    }
+  ]
+}
