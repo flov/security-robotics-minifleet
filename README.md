@@ -58,7 +58,7 @@ bun install && bun run dev
 
 Open http://localhost:3000/login. If port 4000 is already used by Compose `api`, stop it: `docker compose stop api`.
 
-More detail: [backend/README.md](backend/README.md).
+More detail: [backend/README.md](backend/README.md). API tests: `cd backend && bun test` (Postgres and Redis must be running; see that README).
 
 ## Architecture
 

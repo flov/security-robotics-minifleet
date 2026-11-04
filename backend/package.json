@@ -8,7 +8,8 @@
     "dev": "bun --hot run index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test": "bun test --max-concurrency=1 test/"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -17,7 +18,9 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/ws": "^8.18.2",
+    "@types/supertest": "^6.0.3",
     "drizzle-kit": "^1.0.0-rc.5",
+    "supertest": "^7.1.4",
     "tsx": "^4.23.15"
   },
   "peerDependencies": {

@@ -34,6 +34,21 @@ bun run db:migrate    # apply migrations (also runs automatically on API start)
 bun run db:studio     # browse data
 ```
 
+## Testing
+
+Integration tests call the Express app with [Supertest](https://github.com/ladjs/supertest) against Postgres and Redis. They do not start the simulation timer or WebSocket server.
+
+From the repo root, start the databases, then run the suite from `backend/`:
+
+```bash
+docker compose up db redis -d
+cp backend/.env.example backend/.env   # skip if backend/.env already exists
+cd backend
+bun test
+```
+
+If Postgres is not reachable, tests fail with `ECONNREFUSED`. Use the Compose `db` service (`localhost:5433` in `.env.example`).
+
 ## HTTP
 
 | Method | Path | Auth | Description |
