@@ -6,6 +6,7 @@ import Feature from 'ol/Feature'
 import Map from 'ol/Map'
 import View from 'ol/View'
 import Point from 'ol/geom/Point'
+import LineString from 'ol/geom/LineString'
 import TileLayer from 'ol/layer/Tile'
 import VectorLayer from 'ol/layer/Vector'
 import { fromLonLat, toLonLat } from 'ol/proj'
@@ -26,12 +27,22 @@ const markerStyle = new Style({
   }),
 })
 
+const trailStyle = new Style({
+  stroke: new Stroke({
+    color: 'rgba(37, 99, 235, 0.75)',
+    width: 2,
+  }),
+})
+
+export type RobotTrailPoint = { lat: number; lon: number }
+
 type RobotMapProps = {
   robots: Robot[]
+  trails?: Record<number, RobotTrailPoint[]>
   onPick?: (position: { lat: number; lon: number }) => void
 }
 
-export function RobotMap({ robots, onPick }: RobotMapProps) {
+export function RobotMap({ robots, trails, onPick }: RobotMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Map | null>(null)
   const vectorSourceRef = useRef<VectorSource | null>(null)
@@ -80,6 +91,20 @@ export function RobotMap({ robots, onPick }: RobotMapProps) {
     if (!vectorSource || !map) return
 
     vectorSource.clear()
+    for (const [robotId, points] of Object.entries(trails ?? {})) {
+      if (points.length < 2) continue
+      const coordinates = points.map((point) =>
+        fromLonLat([point.lon, point.lat]),
+      )
+      const line = new Feature({
+        geometry: new LineString(coordinates),
+        robotId: Number(robotId),
+        kind: 'trail',
+      })
+      line.setStyle(trailStyle)
+      vectorSource.addFeature(line)
+    }
+
     for (const robot of robots) {
       const feature = new Feature({
         geometry: new Point(fromLonLat([robot.lon, robot.lat])),
@@ -100,7 +125,7 @@ export function RobotMap({ robots, onPick }: RobotMapProps) {
         didFitRef.current = true
       }
     }
-  }, [robots])
+  }, [robots, trails])
 
   return (
     <div

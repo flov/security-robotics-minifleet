@@ -4,6 +4,7 @@ import {
   RobotsFetchError,
   createRobot,
   deleteRobot,
+  fetchRobotPositions,
   fetchRobots,
 } from '@/lib/api/robots'
 import {
@@ -19,7 +20,7 @@ import {
 import { mergeRobotUpdate } from '@/lib/realtime/merge-robot-update'
 import { DEFAULT_MAP_CENTER } from '@/lib/map/constants'
 import type { Robot } from '@/lib/types/robot'
-import { RobotMap } from '@/components/robot-map'
+import { RobotMap, type RobotTrailPoint } from '@/components/robot-map'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
@@ -58,6 +59,30 @@ function liveStatusClass(status: RobotWebSocketStatus): string {
   }
 }
 
+const TRAIL_POINT_LIMIT = 100
+
+async function loadTrailsForRobots(
+  token: string,
+  robotIds: number[],
+): Promise<Record<number, RobotTrailPoint[]>> {
+  const entries = await Promise.all(
+    robotIds.map(async (id) => {
+      try {
+        const positions = await fetchRobotPositions(token, id, {
+          limit: TRAIL_POINT_LIMIT,
+        })
+        return [
+          id,
+          positions.map((point) => ({ lat: point.lat, lon: point.lon })),
+        ] as const
+      } catch {
+        return [id, []] as const
+      }
+    }),
+  )
+  return Object.fromEntries(entries)
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [robots, setRobots] = useState<Robot[] | null>(null)
@@ -75,13 +100,28 @@ export default function DashboardPage() {
   const [addError, setAddError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [trails, setTrails] = useState<Record<number, RobotTrailPoint[]>>({})
 
   const onRobotUpdate = useCallback((robot: Robot) => {
     setRobots((prev) => (prev ? mergeRobotUpdate(prev, robot) : prev))
+    setTrails((prev) => {
+      const existing = prev[robot.id] ?? []
+      const next = [...existing, { lat: robot.lat, lon: robot.lon }]
+      if (next.length > TRAIL_POINT_LIMIT) {
+        next.splice(0, next.length - TRAIL_POINT_LIMIT)
+      }
+      return { ...prev, [robot.id]: next }
+    })
   }, [])
 
   const onRobotRemove = useCallback((id: number) => {
     setRobots((prev) => (prev ? prev.filter((robot) => robot.id !== id) : prev))
+    setTrails((prev) => {
+      if (!(id in prev)) return prev
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
   }, [])
 
   const wsEnabled = robots !== null && error === null
@@ -107,6 +147,16 @@ export default function DashboardPage() {
         if (cancelled) return
         setRobots(list)
         setError(null)
+
+        try {
+          const loadedTrails = await loadTrailsForRobots(
+            token,
+            list.map((robot) => robot.id),
+          )
+          if (!cancelled) setTrails(loadedTrails)
+        } catch {
+          if (!cancelled) setTrails({})
+        }
 
         try {
           const status = await fetchSimulationStatus(token)
@@ -143,6 +193,7 @@ export default function DashboardPage() {
             : 'Could not reach the API. Is it running on port 4000?',
         )
         setRobots([])
+        setTrails({})
       }
     })()
 
@@ -197,6 +248,7 @@ export default function DashboardPage() {
   function handleRetryLoad(): void {
     setError(null)
     setRobots(null)
+    setTrails({})
     setLoadAttempt((n) => n + 1)
   }
 
@@ -231,6 +283,10 @@ export default function DashboardPage() {
     try {
       const created = await createRobot(token, { name, lat, lon })
       setRobots((prev) => (prev ? mergeRobotUpdate(prev, created) : [created]))
+      setTrails((prev) => ({
+        ...prev,
+        [created.id]: [{ lat: created.lat, lon: created.lon }],
+      }))
       setRobotName('')
       setRobotLat('')
       setRobotLon('')
@@ -384,9 +440,12 @@ export default function DashboardPage() {
             Map
           </h2>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Click the map to fill latitude and longitude.
+            Click the map to fill latitude and longitude. Blue lines show recent
+            position history.
           </p>
-          {!error ? <RobotMap robots={list} onPick={handleMapPick} /> : null}
+          {!error ? (
+            <RobotMap robots={list} trails={trails} onPick={handleMapPick} />
+          ) : null}
           {error ? (
             <div className="flex min-h-[20rem] flex-1 items-center justify-center rounded-lg border border-dashed border-neutral-300 text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
               Map unavailable until robots load successfully.

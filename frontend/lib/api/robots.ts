@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "../config";
+import type { RobotPosition } from "../types/robot-position";
 import type { Robot } from "../types/robot";
 
 export class RobotsFetchError extends Error {
@@ -55,6 +56,36 @@ export async function createRobot(
   }
 
   return (await response.json()) as Robot;
+}
+
+export async function fetchRobotPositions(
+  token: string,
+  robotId: number,
+  options: { limit?: number } = {},
+): Promise<RobotPosition[]> {
+  const params = new URLSearchParams();
+  if (options.limit !== undefined) {
+    params.set("limit", String(options.limit));
+  }
+  const query = params.toString();
+  const url = `${getApiBaseUrl()}/robots/${robotId}/positions${query ? `?${query}` : ""}`;
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    let message = "Failed to load position history";
+    try {
+      const body = (await response.json()) as { error?: string };
+      if (body.error) message = body.error;
+    } catch {
+      /* ignore */
+    }
+    throw new RobotsFetchError(message, response.status);
+  }
+
+  return (await response.json()) as RobotPosition[];
 }
 
 export async function deleteRobot(token: string, id: number): Promise<void> {

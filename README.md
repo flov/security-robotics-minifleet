@@ -6,8 +6,8 @@ Web app to monitor a fleet of virtual robots: JWT login, REST for the robot list
 
 ## Screenshots
 
-| Dashboard (map + live list) |
-| --- |
+| Dashboard (map + live list)                  |
+| -------------------------------------------- |
 | ![Dashboard](docs/screenshots/dashboard.jpg) |
 
 Seeded robots start near **Leipzig**; the simulation moves them every ~2 seconds.
@@ -22,12 +22,12 @@ From the repo root:
 docker compose up --build
 ```
 
-| Service | URL |
-| --- | --- |
-| Frontend | http://localhost:3000 |
-| API | http://localhost:4000 |
-| Postgres (host) | `localhost:5433` |
-| Redis | `localhost:6379` |
+| Service         | URL                   |
+| --------------- | --------------------- |
+| Frontend        | http://localhost:3000 |
+| API             | http://localhost:4000 |
+| Postgres (host) | `localhost:5433`      |
+| Redis           | `localhost:6379`      |
 
 The frontend container sets `NEXT_PUBLIC_API_URL=http://localhost:4000` so the **browser** on your machine talks to the published API port.
 
@@ -73,20 +73,15 @@ flowchart LR
   API -->|broadcast| Browser
 ```
 
-- **Postgres:** users, robot positions (`robots` table). Drizzle migrations run on API startup; empty DB is seeded with three robots.
+- **Postgres:** users; current robot state (`robots`); append-only position history (`robot_positions`, filled on create/move). Drizzle migrations run on API startup; empty DB is seeded with three robots.
 - **Redis:** 10s cache for `GET /robots`; pub/sub channel `minifleet:robot:updates` so multiple API instances can share live events (each instance forwards to its WebSocket clients).
 - **Simulation:** interval in the API moves every robot; each move persists and publishes an update. The timer starts on boot; the dashboard can pause and resume it.
-- **Frontend:** Next.js App Router; token in `localStorage`; dashboard merges WebSocket `robot:update` messages into map markers and table.
+- **Frontend:** Next.js App Router; token in `localStorage`; dashboard merges WebSocket `robot:update` messages into map markers and table; map draws recent trails from `GET /robots/:id/positions`.
 
 ## Project layout
 
-| Path | Role |
-| --- | --- |
-| `backend/` | Express API, Drizzle, WebSocket hub, simulation |
-| `frontend/` | Next.js UI, OpenLayers map |
-| `docker-compose.yml` | Postgres, Redis, API, frontend |
-| `aufgabe.md` | Original task specification (German) |
-
-## Assignment checklist
-
-Implemented against `aufgabe.md`: auth, protected `GET /robots`, automatic moves, WebSocket live updates, OpenLayers map, Docker Compose with Postgres + Redis, optional Redis cache and pub/sub.
+| Path                 | Role                                            |
+| -------------------- | ----------------------------------------------- |
+| `backend/`           | Express API, Drizzle, WebSocket hub, simulation |
+| `frontend/`          | Next.js UI, OpenLayers map                      |
+| `docker-compose.yml` | Postgres, Redis, API, frontend                  |
