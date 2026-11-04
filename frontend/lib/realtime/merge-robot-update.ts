@@ -10,6 +10,18 @@ export function mergeRobotUpdate(robots: Robot[], updated: Robot): Robot[] {
   return next;
 }
 
+export function parseRobotRemoveMessage(raw: string): number | null {
+  try {
+    const message = JSON.parse(raw) as { type?: string; id?: unknown };
+    if (message.type !== "robot:remove" || typeof message.id !== "number") {
+      return null;
+    }
+    return message.id;
+  } catch {
+    return null;
+  }
+}
+
 export function parseRobotUpdateMessage(raw: string): Robot | null {
   try {
     const message = JSON.parse(raw) as { type?: string; robot?: Robot };

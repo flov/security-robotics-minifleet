@@ -8,7 +8,7 @@ import View from 'ol/View'
 import Point from 'ol/geom/Point'
 import TileLayer from 'ol/layer/Tile'
 import VectorLayer from 'ol/layer/Vector'
-import { fromLonLat } from 'ol/proj'
+import { fromLonLat, toLonLat } from 'ol/proj'
 import OSM from 'ol/source/OSM'
 import VectorSource from 'ol/source/Vector'
 import CircleStyle from 'ol/style/Circle'
@@ -28,13 +28,16 @@ const markerStyle = new Style({
 
 type RobotMapProps = {
   robots: Robot[]
+  onPick?: (position: { lat: number; lon: number }) => void
 }
 
-export function RobotMap({ robots }: RobotMapProps) {
+export function RobotMap({ robots, onPick }: RobotMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<Map | null>(null)
   const vectorSourceRef = useRef<VectorSource | null>(null)
   const didFitRef = useRef(false)
+  const onPickRef = useRef(onPick)
+  onPickRef.current = onPick
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -56,7 +59,14 @@ export function RobotMap({ robots }: RobotMapProps) {
 
     mapRef.current = map
 
+    const onSingleClick = (event: { coordinate: number[] }) => {
+      const [lon, lat] = toLonLat(event.coordinate)
+      onPickRef.current?.({ lat, lon })
+    }
+    map.on('singleclick', onSingleClick)
+
     return () => {
+      map.un('singleclick', onSingleClick)
       map.setTarget(undefined)
       mapRef.current = null
       vectorSourceRef.current = null
@@ -95,7 +105,7 @@ export function RobotMap({ robots }: RobotMapProps) {
   return (
     <div
       ref={containerRef}
-      className="h-full min-h-[20rem] w-full rounded-lg border border-neutral-200 dark:border-neutral-800"
+      className="h-full min-h-[20rem] w-full cursor-crosshair rounded-lg border border-neutral-200 dark:border-neutral-800"
       aria-label="Robot positions map"
     />
   )

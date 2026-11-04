@@ -2,7 +2,7 @@
 
 import { getAuthToken } from "../auth-token";
 import { getWebSocketUrl } from "../config";
-import { parseRobotUpdateMessage } from "../realtime/merge-robot-update";
+import { parseRobotRemoveMessage, parseRobotUpdateMessage } from "../realtime/merge-robot-update";
 import type { Robot } from "../types/robot";
 import { useEffect, useRef, useState } from "react";
 
@@ -14,19 +14,23 @@ export type RobotWebSocketStatus = "idle" | "connecting" | "live" | "reconnectin
 type UseRobotWebSocketOptions = {
   enabled: boolean;
   onRobotUpdate: (robot: Robot) => void;
+  onRobotRemove: (id: number) => void;
 };
 
 export function useRobotWebSocket({
   enabled,
   onRobotUpdate,
+  onRobotRemove,
 }: UseRobotWebSocketOptions): RobotWebSocketStatus {
   const [connectionStatus, setConnectionStatus] = useState<
     Exclude<RobotWebSocketStatus, "idle">
   >("connecting");
   const onRobotUpdateRef = useRef(onRobotUpdate);
+  const onRobotRemoveRef = useRef(onRobotRemove);
 
   useEffect(() => {
     onRobotUpdateRef.current = onRobotUpdate;
+    onRobotRemoveRef.current = onRobotRemove;
   });
 
   useEffect(() => {
@@ -71,9 +75,15 @@ export function useRobotWebSocket({
       };
 
       ws.onmessage = (event) => {
-        const robot = parseRobotUpdateMessage(String(event.data));
+        const raw = String(event.data);
+        const robot = parseRobotUpdateMessage(raw);
         if (robot) {
           onRobotUpdateRef.current(robot);
+          return;
+        }
+        const removedId = parseRobotRemoveMessage(raw);
+        if (removedId !== null) {
+          onRobotRemoveRef.current(removedId);
         }
       };
 
