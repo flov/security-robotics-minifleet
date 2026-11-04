@@ -41,6 +41,8 @@ bun run db:studio     # browse data
 | GET | `/health` | no | `{ "ok": true }` |
 | POST | `/auth/login` | no | Body `{ "email", "password" }` → `{ "token", "user" }` |
 | GET | `/robots` | Bearer JWT | All robots |
+| POST | `/robots` | Bearer JWT | Body `{ "name", "lat", "lon" }` → **201** and the created robot (`status` `idle`). Invalidates the Redis list cache. |
+| DELETE | `/robots/:id` | Bearer JWT | **204** when the robot is removed. **404** if it does not exist. Invalidates the Redis list cache. |
 | POST | `/robots/:id/move` | Bearer JWT | One random step, then the updated robot |
 | GET | `/simulation` | Bearer JWT | `{ "running": boolean }` |
 | POST | `/simulation/start` | Bearer JWT | Start the 2s timer (no-op if already running) |
@@ -56,6 +58,12 @@ After each move (timer or `POST /robots/:id/move`) every connected client receiv
 
 ```json
 { "type": "robot:update", "robot": { "id", "name", "status", "lat", "lon", "updated_at" } }
+```
+
+After `DELETE /robots/:id` every connected client receives:
+
+```json
+{ "type": "robot:remove", "id": 1 }
 ```
 
 Updates are published on Redis Pub/Sub (`minifleet:robot:updates`); this process subscribes and forwards them to WebSocket clients. `GET /robots` responses are cached in Redis for 10 seconds. Set `REDIS_URL` (see `.env.example`); Compose provides `redis://redis:6379` for the API service.

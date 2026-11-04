@@ -1,7 +1,7 @@
 import { asc, eq, sql } from 'drizzle-orm'
 import { db } from '../db/client.ts'
 import { robots } from '../db/schema.ts'
-import { publishRobotUpdate } from '../realtime/redisPubSub.ts'
+import { publishRobotRemoved, publishRobotUpdate } from '../realtime/redisPubSub.ts'
 import { redis } from 'bun'
 
 export type RobotStatus = 'idle' | 'moving'
@@ -74,6 +74,49 @@ export async function listRobotIds(): Promise<number[]> {
     .from(robots)
     .orderBy(asc(robots.id))
   return rows.map((row) => row.id)
+}
+
+async function invalidateRobotsListCache(): Promise<void> {
+  try {
+    await redis.del(ROBOTS_LIST_KEY)
+  } catch (err) {
+    console.warn('redis del failed', err)
+  }
+}
+
+export async function createRobot(input: {
+  name: string
+  lat: number
+  lon: number
+}): Promise<Robot> {
+  const inserted = await db
+    .insert(robots)
+    .values({
+      name: input.name,
+      status: 'idle',
+      lat: input.lat,
+      lon: input.lon,
+    })
+    .returning()
+
+  const row = inserted[0]
+  if (!row) throw new Error('Failed to create robot')
+
+  await invalidateRobotsListCache()
+  return mapRobot(row)
+}
+
+export async function deleteRobot(id: number): Promise<boolean> {
+  const deleted = await db
+    .delete(robots)
+    .where(eq(robots.id, id))
+    .returning({ id: robots.id })
+
+  if (!deleted[0]) return false
+
+  await invalidateRobotsListCache()
+  await publishRobotRemoved(id)
+  return true
 }
 
 /** Applies a small random step and marks the robot as moving. */

@@ -11,11 +11,18 @@ export function removeClient(ws: WebSocket): void {
   clients.delete(ws);
 }
 
-export function broadcastRobot(robot: Robot): void {
-  const payload = JSON.stringify({ type: "robot:update", robot });
+function send(payload: string): void {
   for (const client of clients) {
     if (client.readyState === WebSocket.OPEN) {
       client.send(payload);
     }
   }
+}
+
+export function broadcastRobot(robot: Robot): void {
+  send(JSON.stringify({ type: "robot:update", robot }));
+}
+
+export function broadcastRobotRemoved(id: number): void {
+  send(JSON.stringify({ type: "robot:remove", id }));
 }
