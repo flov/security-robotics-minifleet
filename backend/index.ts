@@ -7,7 +7,7 @@ import { runMigrations } from './src/db/migrate'
 import { seedIfEmpty } from './src/db/seed'
 import { attachWebSocket } from './src/realtime/attachWebSocket'
 import { startRobotUpdatesSubscriber } from './src/realtime/redisPubSub.ts'
-import { startSimulation, stopSimulation } from './src/simulation/tick'
+import { startSimulation } from './src/simulation/tick'
 
 try {
   await runMigrations()
@@ -20,7 +20,7 @@ const app = createApp()
 const server = createServer(app)
 const closePubSub = await startRobotUpdatesSubscriber()
 const closeWebSocket = attachWebSocket(server)
-startSimulation()
+const stopSimulation = startSimulation()
 
 server.listen(config.port, () => {
   console.log(`API listening on ${config.port}`)

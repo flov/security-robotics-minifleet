@@ -2,7 +2,7 @@ import { listRobotIds, moveRobot } from '../services/robotService.ts'
 
 const INTERVAL_MS = 2000
 
-let timer: ReturnType<typeof setInterval> | null = null
+let stopTimer: (() => void) | null = null
 
 async function tick(): Promise<void> {
   const ids = await listRobotIds()
@@ -12,21 +12,30 @@ async function tick(): Promise<void> {
 }
 
 export function isSimulationRunning(): boolean {
-  return timer !== null
+  return stopTimer !== null
 }
 
-export function startSimulation(): void {
-  if (timer !== null) return
+export function startSimulation(): () => void {
+  if (stopTimer !== null) {
+    return stopTimer
+  }
 
-  timer = setInterval(() => {
+  const timer = setInterval(() => {
     void tick().catch((err: unknown) => {
       console.error('simulation tick failed', err)
     })
   }, INTERVAL_MS)
+
+  const stop = () => {
+    clearInterval(timer)
+    if (stopTimer === stop) {
+      stopTimer = null
+    }
+  }
+  stopTimer = stop
+  return stop
 }
 
 export function stopSimulation(): void {
-  if (timer === null) return
-  clearInterval(timer)
-  timer = null
+  stopTimer?.()
 }
